@@ -29,21 +29,26 @@
           ...
         }:
         let
-          nodeDependencies = (pkgs.callPackage ./default.nix {}).nodeDependencies;
-        in        
+          nodeEnv = import ./default.nix { inherit pkgs; };
+        in     
           {
           packages = {
             default = pkgs.stdenv.mkDerivation {
-              name = "my-webpack-app";
-              src = ./my-app;
-              buildInputs = [pkgs.nodejs];
-              buildPhase = ''
-                ln -s ${nodeDependencies}/lib/node_modules ./node_modules
-                export PATH="${nodeDependencies}/bin:$PATH"
+              pname = "actual-budget-prometheus-export";
+              version = "1.0.0";
 
-                # Build the distribution bundle in "dist"
-                webpack
-                cp -r dist $out/
+              src = ./.;
+
+              buildInputs = [ nodeEnv ];
+
+              installPhase = ''
+                mkdir -p $out/bin
+                # Wrap your npm script as an executable
+                cat > $out/bin/actual-budget-prometheus-export <<EOF
+                #!/bin/sh
+                exec ${nodeEnv}/bin/npm run prod 
+                EOF
+                chmod +x $out/bin/start-my-service
               '';
             };
           };
